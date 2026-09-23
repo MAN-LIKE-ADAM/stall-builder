@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Stall — build your storefront</title>
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Stall%22,%22short_name%22:%22Stall%22,%22display%22:%22standalone%22,%22start_url%22:%22.%22,%22theme_color%22:%22%23C1432E%22,%22background_color%22:%22%23E9E4DA%22}">
+<style>
+  :root{
+    --bg:#E9E4DA;
+    --panel:#FFFFFF;
+    --ink:#221F1A;
+    --ink-soft:#6B6559;
+    --line:rgba(34,31,26,0.12);
+    --red:#C1432E;
+    --red-bg:#F5E1DC;
+    --teal:#0F6659;
+    --teal-bg:#DDEBE8;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    min-height:100vh;padding-bottom:60px;
+  }
+  header{
+    background:var(--panel);padding:0;position:relative;border-bottom:1px solid var(--line);
+  }
+  .awning{
+    height:14px;
+    background-image:repeating-linear-gradient(45deg, var(--red) 0 16px, #fff 16px 32px);
+  }
+  .header-inner{padding:20px 20px 16px;}
+  header h1{font-size:24px;font-weight:800;margin:0;letter-spacing:-0.3px;}
+  header .sub{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+
+  main{max-width:1100px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:1fr;gap:24px;}
+  @media(min-width:900px){ main{grid-template-columns:1fr 420px;} }
+
+  .panel{background:var(--panel);border-radius:var(--radius);padding:18px;border:1px solid var(--line);margin-bottom:16px;}
+  .panel h2{font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin:0 0 14px;}
+
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .field input,.field select,.field textarea{
+    width:100%;font-family:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:7px;background:#fff;color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:50px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .field input[type="file"]{padding:6px;}
+  .field input[type="color"]{padding:2px;height:38px;cursor:pointer;}
+
+  .logo-preview{width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--line);vertical-align:middle;margin-right:10px;}
+
+  .product-row{
+    display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;
+  }
+  .product-row img{width:40px;height:40px;border-radius:6px;object-fit:cover;background:var(--bg);flex-shrink:0;}
+  .product-row .info{flex:1;min-width:0;}
+  .product-row .info .name{font-weight:600;font-size:13px;}
+  .product-row .info .price{font-size:12px;color:var(--ink-soft);}
+  .product-row button{background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;}
+
+  .add-product-form{border-top:1px dashed var(--line);margin-top:12px;padding-top:12px;}
+  .editing-photo{position:relative;width:52px;height:52px;}
+  .editing-photo img{width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .editing-photo button{
+    position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+    background:var(--red);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;padding:0;
+  }
+
+  button.primary{
+    background:var(--red);color:#fff;border:none;border-radius:8px;padding:11px 18px;
+    font-weight:700;cursor:pointer;font-size:14px;
+  }
+  button.secondary{
+    background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 14px;
+    font-weight:600;cursor:pointer;font-size:13px;
+  }
+  button.ghost{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:13px;}
+
+  .download-box{
+    background:var(--teal);color:#fff;border-radius:var(--radius);padding:18px;text-align:center;
+  }
+  .download-box p{font-size:13px;opacity:0.85;margin:6px 0 14px;}
+  .download-box button{background:#fff;color:var(--teal);border:none;border-radius:8px;padding:12px 20px;font-weight:800;cursor:pointer;font-size:14px;width:100%;}
+
+  /* the signature element: a device-frame live preview, awning-striped like a shop window */
+  .preview-wrap{position:sticky;top:16px;}
+  .preview-frame{
+    background:var(--panel);border-radius:14px;border:1px solid var(--line);overflow:hidden;
+  }
+  .preview-frame-awning{
+    height:10px;
+    background-image:repeating-linear-gradient(45deg, var(--red) 0 10px, #fff 10px 20px);
+  }
+  .preview-frame iframe{width:100%;height:520px;border:none;display:block;}
+  .preview-label{font-size:11px;color:var(--ink-soft);text-align:center;padding:8px;text-transform:uppercase;letter-spacing:0.06em;}
+
+  .upgrade-card{background:var(--panel);border:1px dashed var(--teal);border-radius:var(--radius);padding:14px 16px;margin-top:10px;font-size:13px;color:var(--ink-soft);}
+  .upgrade-card b{color:var(--ink);}
+  .upgrade-card .unlock-row{display:flex;gap:8px;margin-top:10px;}
+  .upgrade-card input{flex:1;text-transform:uppercase;}
+  .upgrade-card button{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+
+  #toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;
+    opacity:0;transition:all 0.25s ease;pointer-events:none;z-index:100;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .pro-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;background:var(--teal);color:#fff;padding:2px 7px;border-radius:4px;margin-left:8px;display:none;vertical-align:middle;}
+  .pro-badge.show{display:inline-block;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="awning"></div>
+  <div class="header-inner">
+    <h1>STALL <span class="pro-badge" id="pro-badge">PRO</span></h1>
+    <div class="sub">Build a storefront, download it, host it anywhere. No account, no monthly fee.</div>
+  </div>
+</header>
+
+<main>
+  <div>
+    <div class="panel">
+      <h2>Your business</h2>
+      <div class="field">
+        <label>Logo (optional)</label>
+        <img id="logo-preview" class="logo-preview" style="display:none;">
+        <input type="file" id="biz-logo" accept="image/*" onchange="handleLogoUpload(this)">
+      </div>
+      <div class="field"><label>Business name</label><input type="text" id="biz-name" oninput="updatePreview()"></div>
+      <div class="field"><label>Tagline</label><input type="text" id="biz-tagline" oninput="updatePreview()"></div>
+      <div class="field-row">
+        <div class="field"><label>Brand color</label><input type="color" id="biz-color" value="#3B82C4" oninput="updatePreview()"></div>
+        <div class="field"><label>Price color</label><input type="color" id="biz-price-color" value="#1E8A5F" oninput="updatePreview()"></div>
+        <div class="field"><label>Currency</label><select id="biz-currency" onchange="updatePreview()"></select></div>
+      </div>
+      <div class="field"><label>WhatsApp number (for order messages)</label><input type="text" id="biz-whatsapp" placeholder="+1 555 019 2231" oninput="updatePreview()"></div>
+      <div class="field"><label>Order email (alternative to WhatsApp)</label><input type="text" id="biz-email" placeholder="orders@yourshop.com" oninput="updatePreview()"></div>
+      <div style="font-size:11px;color:var(--ink-soft);">At least one of WhatsApp or email is needed so customers can actually send you their order.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Website background</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Background type</label>
+          <select id="biz-bg-type" onchange="updateBackgroundTypeUI(); updatePreview();">
+            <option value="color">Plain color</option>
+            <option value="image">Photo</option>
+          </select>
+        </div>
+        <div class="field" id="bg-color-field"><label>Background color</label><input type="color" id="biz-bg-color" value="#F7F5EF" oninput="updatePreview()"></div>
+      </div>
+      <div class="field" id="bg-image-field" style="display:none;">
+        <label>Background photo</label>
+        <input type="file" id="biz-bg-image" accept="image/*" onchange="handleBackgroundImageUpload(this)">
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">A darkening overlay is applied automatically so product text stays readable over any photo.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Products</h2>
+      <div id="product-list"></div>
+      <div class="add-product-form">
+        <div id="form-heading" style="font-weight:700;font-size:13px;margin-bottom:10px;">Add a product</div>
+        <div id="existing-photos-row" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+        <div class="field">
+          <label>Photos (optional — pick one or more, you can click "Choose files" again to add more on top)</label>
+          <input type="file" id="new-product-image" accept="image/*" multiple onchange="handleNewProductFiles(this)">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Product name</label><input type="text" id="new-product-name"></div>
+          <div class="field" style="max-width:120px;"><label>Price</label><input type="number" id="new-product-price" step="any"></div>
+        </div>
+        <div class="field"><label>Description (optional)</label><input type="text" id="new-product-desc"></div>
+        <div class="field"><label>Color options (optional, comma-separated — e.g. Red, Blue, Green)</label><input type="text" id="new-product-colors"></div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="new-product-outofstock" style="width:auto;">
+          <label style="margin:0;" for="new-product-outofstock">Mark as out of stock</label>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="secondary" id="save-product-btn" onclick="saveProduct()">+ Add product</button>
+          <button class="ghost" id="cancel-edit-btn" onclick="cancelEditProduct()" style="display:none;">Cancel</button>
+        </div>
+      </div>
+      <div class="upgrade-card" id="upgrade-card" style="display:none;">
+        <div>Trial stores are limited to <b id="free-limit-label"></b> products and show a small "Built with Stall" badge. A license key unlocks a real store — up to 100 products, no badge.</div>
+        <div class="unlock-row">
+          <input type="text" id="license-key-input" placeholder="XXXXXXXX-XXXX">
+          <button onclick="tryUnlock()">Unlock</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="download-box">
+      <div style="font-weight:800;font-size:16px;" id="publish-heading">Ready to publish?</div>
+      <p>This publishes your store live. Editing products or stock later and clicking this again updates the same live page instantly — no re-uploading anything.</p>
+      <button onclick="publishStore()" id="publish-btn">Publish my store</button>
+      <div id="shop-url-box" style="display:none;margin-top:14px;padding:12px;background:rgba(255,255,255,0.15);border-radius:8px;font-size:13px;">
+        Your store is live at:<br>
+        <a id="shop-url-link" href="#" target="_blank" style="color:#fff;font-weight:700;word-break:break-all;"></a>
+      </div>
+    </div>
+
+    <div id="pro-settings" style="margin-top:16px;font-size:11px;color:var(--ink-soft);text-align:center;">
+      <span id="pro-status-text"></span>
+      <button id="pro-toggle-link" onclick="toggleProPrompt()" style="background:none;border:none;color:var(--ink-soft);text-decoration:underline;cursor:pointer;font-size:11px;">Have a license key?</button>
+      <div class="upgrade-card" id="settings-unlock-card" style="display:none;text-align:left;">
+        <div class="unlock-row">
+          <input type="text" id="settings-license-key-input" placeholder="XXXXXXXX-XXXX">
+          <button onclick="tryUnlock(true)">Unlock</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview-frame">
+      <div class="preview-frame-awning"></div>
+      <iframe id="preview-iframe"></iframe>
+    </div>
+    <div class="preview-label">Live preview — exactly what customers will see</div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+let state = {
+  business: { name: '', tagline: '', logoDataUrl: '', color: '#3B82C4', whatsapp: '', email: '', currency: 'USD' },
+  products: [],
+  pro: false,
+  licenseKey: null,
+  storeId: null,
+  storeSecret: null,
+  shopUrl: null,
+};
+let loaded = false;
+
+const TRIAL_PRODUCT_LIMIT = 2; // matches the server's trial cap — real enforcement happens there
+const PRO_PRODUCT_LIMIT = 100;
+// Point this at your deployed stall-worker.js URL.
+const API_BASE = 'https://stall-storefront.yawanime.workers.dev';
+
+const CURRENCIES = [
+  { code: 'USD', label: 'USD — US Dollar', locale: 'en-US' },
+  { code: 'EUR', label: 'EUR — Euro', locale: 'en-IE' },
+  { code: 'GBP', label: 'GBP — British Pound', locale: 'en-GB' },
+  { code: 'NGN', label: 'NGN — Nigerian Naira', locale: 'en-NG' },
+  { code: 'INR', label: 'INR — Indian Rupee', locale: 'en-IN' },
+  { code: 'CAD', label: 'CAD — Canadian Dollar', locale: 'en-CA' },
+  { code: 'AUD', label: 'AUD — Australian Dollar', locale: 'en-AU' },
+  { code: 'ZAR', label: 'ZAR — South African Rand', locale: 'en-ZA' },
+];
+
+// --- Offline license key check — own salt, isolated from every other product ---
+const LICENSE_SALT = 'STALL-2026';
+function simpleHash(str){
+  let h = 5381;
+  for (let i = 0; i < str.length; i++){ h = ((h << 5) + h) ^ str.charCodeAt(i); h = h >>> 0; }
+  return h;
+}
+function checksumFor(body){
+  const h = simpleHash(body + LICENSE_SALT);
+  let out = h.toString(36).toUpperCase();
+  while (out.length < 4) out = '0' + out;
+  return out.slice(-4);
+}
+function isValidLicenseKey(key){
+  if (!key) return false;
+  const clean = key.trim().toUpperCase();
+  const match = clean.match(/^([A-Z0-9]{8})-([A-Z0-9]{4})$/);
+  if (!match) return false;
+  return checksumFor(match[1]) === match[2];
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+async function loadState(){
+  try{
+    const raw = localStorage.getItem('stall-draft-state');
+    if (raw) state = JSON.parse(raw);
+  }catch(e){ /* start fresh */ }
+  if (!state.business) state.business = { name:'', tagline:'', logoDataUrl:'', color:'#3B82C4', priceColor:'#1E8A5F', whatsapp:'', email:'', currency:'USD', backgroundType:'color', backgroundColor:'#F7F5EF', backgroundImageDataUrl:'' };
+  if (!state.business.priceColor) state.business.priceColor = '#1E8A5F';
+  if (!state.business.backgroundType) state.business.backgroundType = 'color';
+  if (!state.business.backgroundColor) state.business.backgroundColor = '#F7F5EF';
+  if (!Array.isArray(state.products)) state.products = [];
+  // migrate products saved before multi-image support existed
+  state.products.forEach(p => {
+    if (!Array.isArray(p.images)){
+      p.images = p.imageDataUrl ? [p.imageDataUrl] : [];
+    }
+  });
+  loaded = true;
+
+  document.getElementById('biz-name').value = state.business.name;
+  document.getElementById('biz-tagline').value = state.business.tagline;
+  document.getElementById('biz-color').value = state.business.color || '#3B82C4';
+  document.getElementById('biz-price-color').value = state.business.priceColor || '#1E8A5F';
+  document.getElementById('biz-bg-type').value = state.business.backgroundType || 'color';
+  document.getElementById('biz-bg-color').value = state.business.backgroundColor || '#F7F5EF';
+  updateBackgroundTypeUI();
+  document.getElementById('biz-whatsapp').value = state.business.whatsapp;
+  document.getElementById('biz-email').value = state.business.email;
+  const sel = document.getElementById('biz-currency');
+  if (sel.options.length === 0) sel.innerHTML = CURRENCIES.map(c => `<option value="${c.code}">${c.label}</option>`).join('');
+  sel.value = state.business.currency || 'USD';
+  if (state.business.logoDataUrl){
+    const img = document.getElementById('logo-preview');
+    img.src = state.business.logoDataUrl;
+    img.style.display = 'inline-block';
+  }
+
+  if (state.storeId && state.shopUrl){
+    document.getElementById('publish-btn').textContent = 'Publish updates';
+    document.getElementById('publish-heading').textContent = 'Your store is live';
+    document.getElementById('shop-url-box').style.display = 'block';
+    const link = document.getElementById('shop-url-link');
+    link.href = state.shopUrl;
+    link.textContent = state.shopUrl;
+  }
+
+  render();
+  updatePreview();
+}
+
+async function saveState(){
+  try{ localStorage.setItem('stall-draft-state', JSON.stringify(state)); }
+  catch(e){ showToast("Couldn't save your draft — your browser may be blocking storage"); }
+}
+
+function handleLogoUpload(input){
+  const file = input.files[0];
+  if (!file) return;
+  compressImageFile(file, 400, 0.85).then(async (dataUrl) => {
+    state.business.logoDataUrl = dataUrl;
+    const img = document.getElementById('logo-preview');
+    img.src = dataUrl;
+    img.style.display = 'inline-block';
+    await saveState();
+    updatePreview();
+  }).catch(() => showToast('Could not read that image — try a different file'));
+}
+
+function handleBackgroundImageUpload(input){
+  const file = input.files[0];
+  if (!file) return;
+  // Background photos cover the whole viewport, so allow a larger max
+  // dimension than product photos, but still compress — an original phone
+  // photo used as a full-page background is one of the single biggest
+  // contributors to an oversized publish payload.
+  compressImageFile(file, 1600, 0.75).then(async (dataUrl) => {
+    state.business.backgroundImageDataUrl = dataUrl;
+    await saveState();
+    updatePreview();
+    showToast('Background photo set');
+  }).catch(() => showToast('Could not read that image — try a different file'));
+}
+
+function updateBackgroundTypeUI(){
+  const type = document.getElementById('biz-bg-type').value;
+  document.getElementById('bg-color-field').style.display = type === 'color' ? 'block' : 'none';
+  document.getElementById('bg-image-field').style.display = type === 'image' ? 'block' : 'none';
+}
+
+// Compresses/resizes an image before it's stored as base64 — uncompressed
+// phone photos can be several MB each, which adds up fast across multiple
+// products and can hit real size limits (Cloudflare KV caps a stored value
+// at 25MB). Resizing to a sane max dimension and re-encoding as JPEG
+// typically shrinks a multi-MB photo down to well under 300KB.
+function compressImageFile(file, maxDimension = 1200, quality = 0.8){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension){
+          if (width > height){ height = Math.round(height * (maxDimension / width)); width = maxDimension; }
+          else { width = Math.round(width * (maxDimension / height)); height = maxDimension; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsDataUrl(file){
+  return compressImageFile(file);
+}
+
+let editingProductId = null;
+let editingProductPhotos = []; // the current working photo list for whichever product is being added or edited
+
+// Fires every time photos are picked, whether this is the first pick or a
+// repeat. A native <input type="file"> REPLACES its selection each time you
+// open the picker again — it doesn't accumulate on its own. So instead of
+// reading fileInput.files only at save time (which would silently lose any
+// earlier picks), we read and stage each batch immediately, appending to
+// editingProductPhotos, then clear the input so it's ready for another pick.
+async function handleNewProductFiles(input){
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  let newPhotos;
+  try{
+    newPhotos = await Promise.all(files.map(readFileAsDataUrl));
+  }catch(e){
+    showToast('Could not read one of the selected photos — try again');
+    input.value = '';
+    return;
+  }
+  editingProductPhotos = editingProductPhotos.concat(newPhotos);
+  renderEditingPhotosPreview();
+  input.value = ''; // reset so picking again is a fresh, independent selection
+}
+
+function renderEditingPhotosPreview(){
+  const row = document.getElementById('existing-photos-row');
+  if (!editingProductPhotos.length){
+    row.style.display = 'none';
+    row.innerHTML = '';
+    return;
+  }
+  row.style.display = 'flex';
+  row.innerHTML = editingProductPhotos.map((src, idx) => `
+    <div class="editing-photo">
+      <img src="${src}">
+      <button onclick="removeEditingPhoto(${idx})" title="Remove this photo">&times;</button>
+    </div>
+  `).join('');
+}
+
+function removeEditingPhoto(idx){
+  editingProductPhotos.splice(idx, 1);
+  renderEditingPhotosPreview();
+}
+
+function startEditProduct(id){
+  const p = state.products.find(p => p.id === id);
+  if (!p) return;
+  editingProductId = id;
+  editingProductPhotos = (p.images || []).slice();
+
+  document.getElementById('new-product-name').value = p.name;
+  document.getElementById('new-product-price').value = p.price;
+  document.getElementById('new-product-desc').value = p.description || '';
+  document.getElementById('new-product-colors').value = (p.colors || []).join(', ');
+  document.getElementById('new-product-outofstock').checked = !!p.outOfStock;
+  document.getElementById('new-product-image').value = '';
+  renderEditingPhotosPreview();
+
+  document.getElementById('form-heading').textContent = 'Editing "' + p.name + '"';
+  document.getElementById('save-product-btn').textContent = 'Save changes';
+  document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+  document.querySelector('.add-product-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function cancelEditProduct(){
+  editingProductId = null;
+  editingProductPhotos = [];
+  document.getElementById('new-product-name').value = '';
+  document.getElementById('new-product-price').value = '';
+  document.getElementById('new-product-desc').value = '';
+  document.getElementById('new-product-colors').value = '';
+  document.getElementById('new-product-outofstock').checked = false;
+  document.getElementById('new-product-image').value = '';
+  renderEditingPhotosPreview();
+  document.getElementById('form-heading').textContent = 'Add a product';
+  document.getElementById('save-product-btn').textContent = '+ Add product';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+async function saveProduct(){
+  const isEditing = !!editingProductId;
+  if (!isEditing && !state.pro && state.products.length >= TRIAL_PRODUCT_LIMIT){
+    showToast(`Trial is limited to ${TRIAL_PRODUCT_LIMIT} products — enter a license key to unlock a real store`);
+    return;
+  }
+  const name = document.getElementById('new-product-name').value.trim();
+  const price = parseFloat(document.getElementById('new-product-price').value);
+  const desc = document.getElementById('new-product-desc').value.trim();
+  const colorsRaw = document.getElementById('new-product-colors').value.trim();
+  const colors = colorsRaw ? colorsRaw.split(',').map(c => c.trim()).filter(Boolean) : [];
+  const outOfStock = document.getElementById('new-product-outofstock').checked;
+  if (!name || !price || price <= 0){ showToast('Enter a product name and price'); return; }
+
+  // editingProductPhotos already holds everything staged (picked, and not
+  // removed) — no need to read the file input again here.
+  const images = editingProductPhotos.slice();
+
+  if (isEditing){
+    const p = state.products.find(p => p.id === editingProductId);
+    if (!p){ cancelEditProduct(); return; }
+    Object.assign(p, { name, price, description: desc, colors, outOfStock, images });
+  } else {
+    state.products.push({ id: 'prod_' + Date.now(), name, price, description: desc, images, colors, outOfStock });
+  }
+
+  cancelEditProduct(); // resets the form and edit state either way
+  await saveState();
+  render();
+  updatePreview();
+  showToast(isEditing ? 'Product updated — click Publish my store to make it live' : 'Product added — click Publish my store to make it live');
+}
+
+async function toggleProductStock(id){
+  const p = state.products.find(p => p.id === id);
+  if (!p) return;
+  p.outOfStock = !p.outOfStock;
+  await saveState();
+  render();
+  updatePreview();
+  showToast(p.outOfStock ? 'Marked out of stock — click Publish my store to update the live page' : 'Marked in stock — click Publish my store to update the live page');
+}
+
+async function removeProduct(id){
+  if (editingProductId === id) cancelEditProduct();
+  state.products = state.products.filter(p => p.id !== id);
+  await saveState();
+  render();
+  updatePreview();
+}
+
+async function updateBusinessField(){
+  state.business.name = document.getElementById('biz-name').value.trim();
+  state.business.tagline = document.getElementById('biz-tagline').value.trim();
+  state.business.color = document.getElementById('biz-color').value;
+  state.business.priceColor = document.getElementById('biz-price-color').value;
+  state.business.backgroundType = document.getElementById('biz-bg-type').value;
+  state.business.backgroundColor = document.getElementById('biz-bg-color').value;
+  state.business.whatsapp = document.getElementById('biz-whatsapp').value.trim();
+  state.business.email = document.getElementById('biz-email').value.trim();
+  state.business.currency = document.getElementById('biz-currency').value;
+  await saveState();
+}
+
+function updatePreview(){
+  updateBusinessField();
+  const iframe = document.getElementById('preview-iframe');
+  iframe.srcdoc = generateStoreHtml(state);
+}
+
+function toggleProPrompt(){
+  const card = document.getElementById('settings-unlock-card');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+async function tryUnlock(fromSettings){
+  const inputId = fromSettings ? 'settings-license-key-input' : 'license-key-input';
+  const key = document.getElementById(inputId).value;
+  if (!isValidLicenseKey(key)){ showToast("That key doesn't look right — check and try again"); return; }
+  state.pro = true;
+  state.licenseKey = key.trim().toUpperCase();
+  await saveState();
+  render();
+  showToast('Pro unlocked — thanks!');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : str;
+  return d.innerHTML;
+}
+
+function render(){
+  if (!loaded) return;
+  document.getElementById('pro-badge').classList.toggle('show', state.pro);
+
+  const atLimit = !state.pro && state.products.length >= TRIAL_PRODUCT_LIMIT;
+  document.getElementById('upgrade-card').style.display = atLimit ? 'block' : 'none';
+  document.getElementById('free-limit-label').textContent = TRIAL_PRODUCT_LIMIT;
+
+  const statusEl = document.getElementById('pro-status-text');
+  const toggleLink = document.getElementById('pro-toggle-link');
+  if (state.pro){
+    statusEl.textContent = 'Pro plan active — up to 100 products, no badge. ';
+    toggleLink.style.display = 'none';
+  } else {
+    statusEl.textContent = '';
+    toggleLink.style.display = 'inline';
+  }
+
+  const list = document.getElementById('product-list');
+  if (state.products.length === 0){
+    list.innerHTML = '<div style="font-size:12px;color:var(--ink-soft);padding:8px 0;">No products yet — add your first one below.</div>';
+  } else {
+    list.innerHTML = state.products.map(p => `
+      <div class="product-row">
+        ${p.images && p.images.length ? `<img src="${p.images[0]}">` : '<div style="width:40px;height:40px;border-radius:6px;background:var(--bg);flex-shrink:0;"></div>'}
+        <div class="info">
+          <div class="name">${escapeHtml(p.name)}</div>
+          <div class="price">${fmtBuilder(p.price)}${p.colors && p.colors.length ? ' · ' + escapeHtml(p.colors.join(', ')) : ''}${p.images && p.images.length > 1 ? ' · ' + p.images.length + ' photos' : ''}</div>
+          ${p.outOfStock ? '<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px;">OUT OF STOCK</div>' : ''}
+        </div>
+        <button onclick="startEditProduct('${p.id}')" style="color:var(--red);text-decoration:underline;">Edit</button>
+        <button onclick="toggleProductStock('${p.id}')" style="color:${p.outOfStock ? 'var(--teal)' : 'var(--ink-soft)'};">${p.outOfStock ? 'Mark in stock' : 'Mark out of stock'}</button>
+        <button onclick="removeProduct('${p.id}')">Remove</button>
+      </div>
+    `).join('');
+  }
+}
+
+function fmtBuilder(n){
+  const meta = CURRENCIES.find(c => c.code === state.business.currency) || CURRENCIES[0];
+  try{ return new Intl.NumberFormat(meta.locale, { style: 'currency', currency: meta.code }).format(n); }
+  catch(e){ return '$' + n.toFixed(2); }
+}
+
+async function publishStore(){
+  if (API_BASE.includes('YOUR-STALL-WORKER-URL')){
+    showToast('Not connected to a worker yet — see stall-worker.js setup');
+    return;
+  }
+  if (!state.business.name){ showToast('Add a business name first'); return; }
+  if (state.products.length === 0){ showToast('Add at least one product first'); return; }
+  if (!state.business.whatsapp && !state.business.email){ showToast('Add a WhatsApp number or email so customers can send you orders'); return; }
+
+  const btn = document.getElementById('publish-btn');
+  btn.disabled = true;
+  btn.textContent = state.storeId ? 'Updating...' : 'Publishing...';
+
+  try{
+    const res = await fetch(API_BASE + '/api/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storeId: state.storeId,
+        storeSecret: state.storeSecret,
+        business: state.business,
+        products: state.products,
+        licenseKey: state.licenseKey,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok){
+      showToast(data.error || 'Could not publish — try again');
+      return;
+    }
+    state.storeId = data.storeId;
+    if (data.storeSecret) state.storeSecret = data.storeSecret; // only returned on first publish
+    state.shopUrl = data.shopUrl || state.shopUrl;
+    await saveState();
+
+    document.getElementById('shop-url-box').style.display = 'block';
+    const link = document.getElementById('shop-url-link');
+    link.href = state.shopUrl;
+    link.textContent = state.shopUrl;
+    document.getElementById('publish-heading').textContent = 'Your store is live';
+    showToast('Published — changes are live now');
+  }catch(e){
+    showToast('Could not reach the server — check your connection and try again');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = state.storeId ? 'Publish updates' : 'Publish my store';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// STORE_TEMPLATE: used ONLY for the builder's own local live-preview pane —
+// not shipped anywhere. The real, live storefront customers see is served
+// directly by stall-worker.js from live data, so edits here go live the
+// moment you click Publish, with nothing to re-download or re-upload.
+// Its own internal JS deliberately avoids template literals (uses string
+// concatenation instead) so it can be safely embedded inside this outer
+// template literal without nested-backtick escaping issues.
+// ---------------------------------------------------------------------------
+const STORE_TEMPLATE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__BIZ_NAME__</title>
+<style>
+  :root{ --accent: __BIZ_COLOR__; --price-color: __PRICE_COLOR__; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;__BODY_BG_STYLE__}
+  header{padding:24px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:14px;background:#fff;}
+  header img{width:48px;height:48px;border-radius:8px;object-fit:cover;}
+  header h1{font-size:22px;margin:0;}
+  header .tagline{font-size:13px;color:#777;margin-top:2px;}
+  main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+  .product{border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff;}
+  .product .main-img{width:100%;height:150px;object-fit:cover;background:#f5f5f5;cursor:pointer;display:block;}
+  .product .thumb-row{display:flex;gap:4px;padding:6px;background:#fafafa;}
+  .product .thumb-row img{width:32px;height:32px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid #eee;}
+  .product .body{padding:12px;}
+  .product .name{font-weight:600;font-size:14px;}
+  .product .desc{font-size:12px;color:#777;margin-top:2px;}
+  .product .price{font-weight:700;margin-top:8px;color:var(--price-color);}
+  .product button{width:100%;margin-top:10px;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:9px;font-weight:600;cursor:pointer;}
+  #cart-bar{
+    position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;color:#fff;padding:14px 20px;
+    display:none;justify-content:space-between;align-items:center;
+  }
+  #cart-bar button{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer;}
+  #checkout-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:20px;}
+  #checkout-overlay.show{display:flex;}
+  .checkout-box{background:#fff;border-radius:12px;padding:24px;max-width:400px;width:100%;}
+  .checkout-box h2{margin-top:0;}
+  .checkout-box input{width:100%;padding:10px;border:1px solid #ddd;border-radius:7px;margin-bottom:10px;font-family:inherit;}
+  .checkout-box button{width:100%;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:12px;font-weight:700;cursor:pointer;margin-top:6px;}
+  .empty{text-align:center;color:#999;padding:60px 20px;}
+  #lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;z-index:200;}
+  #lightbox.show{display:flex;}
+  #lightbox img{max-width:100%;max-height:80vh;border-radius:6px;}
+  #lightbox .lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);color:#fff;border:none;font-size:24px;padding:10px 16px;cursor:pointer;border-radius:6px;}
+  #lightbox .lightbox-prev{left:16px;}
+  #lightbox .lightbox-next{right:16px;}
+  #lightbox .lightbox-close{position:absolute;top:16px;right:16px;background:none;color:#fff;border:none;font-size:28px;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <img id="logo" style="display:none;">
+  <div>
+    <h1 id="biz-name"></h1>
+    <div class="tagline" id="biz-tagline"></div>
+  </div>
+</header>
+<main>
+  <div class="grid" id="product-grid"></div>
+</main>
+<div id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <button class="lightbox-nav lightbox-prev" onclick="prevLightboxImage()" id="lightbox-prev-btn">&#8249;</button>
+  <img id="lightbox-img">
+  <button class="lightbox-nav lightbox-next" onclick="nextLightboxImage()" id="lightbox-next-btn">&#8250;</button>
+</div>
+<div id="cart-bar">
+  <span id="cart-summary"></span>
+  <button onclick="openCheckout()">Checkout</button>
+</div>
+<div id="checkout-overlay">
+  <div class="checkout-box">
+    <h2>Complete your order</h2>
+    <input type="text" id="customer-name" placeholder="Your name">
+    <input type="text" id="customer-contact" placeholder="Phone or email (optional)">
+    <button onclick="sendOrder()">Send order</button>
+    <button onclick="closeCheckout()" style="background:#eee;color:#333;">Cancel</button>
+  </div>
+</div>
+<script>
+const STORE_DATA = /*__STALL_DATA__*/;
+let cart = [];
+
+function fmt(n){
+  try{ return new Intl.NumberFormat(STORE_DATA.business.currencyLocale || 'en-US', { style: 'currency', currency: STORE_DATA.business.currency || 'USD' }).format(n); }
+  catch(e){ return '$' + n.toFixed(2); }
+}
+
+function calculateCart(){
+  const items = cart.map(function(entry){
+    const product = STORE_DATA.products.find(function(p){ return p.id === entry.productId; });
+    if (!product) return null;
+    const lineTotal = Math.round((product.price * entry.qty + Number.EPSILON) * 100) / 100;
+    return { product: product, qty: entry.qty, lineTotal: lineTotal };
+  }).filter(Boolean);
+  const total = Math.round((items.reduce(function(s, it){ return s + it.lineTotal; }, 0) + Number.EPSILON) * 100) / 100;
+  return { items: items, total: total };
+}
+
+function addToCart(productId){
+  const existing = cart.find(function(e){ return e.productId === productId; });
+  if (existing) existing.qty += 1;
+  else cart.push({ productId: productId, qty: 1 });
+  renderCartBar();
+}
+
+function renderCartBar(){
+  const bar = document.getElementById('cart-bar');
+  const result = calculateCart();
+  if (result.items.length === 0){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const count = result.items.reduce(function(s, it){ return s + it.qty; }, 0);
+  document.getElementById('cart-summary').textContent = count + ' item' + (count !== 1 ? 's' : '') + ' — ' + fmt(result.total);
+}
+
+function openCheckout(){ document.getElementById('checkout-overlay').classList.add('show'); }
+function closeCheckout(){ document.getElementById('checkout-overlay').classList.remove('show'); }
+
+let lightboxProductId = null;
+let lightboxIndex = 0;
+
+function openLightbox(productId, index){
+  const product = STORE_DATA.products.find(function(p){ return p.id === productId; });
+  if (!product || !product.images || !product.images.length) return;
+  lightboxProductId = productId;
+  lightboxIndex = index || 0;
+  renderLightbox();
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('show');
+  lightboxProductId = null;
+}
+function renderLightbox(){
+  const product = STORE_DATA.products.find(function(p){ return p.id === lightboxProductId; });
+  if (!product) return;
+  document.getElementById('lightbox-img').src = product.images[lightboxIndex];
+  const multi = product.images.length > 1;
+  document.getElementById('lightbox-prev-btn').style.display = multi ? 'block' : 'none';
+  document.getElementById('lightbox-next-btn').style.display = multi ? 'block' : 'none';
+}
+function nextLightboxImage(){
+  const product = STORE_DATA.products.find(function(p){ return p.id === lightboxProductId; });
+  if (!product) return;
+  lightboxIndex = (lightboxIndex + 1) % product.images.length;
+  renderLightbox();
+}
+function prevLightboxImage(){
+  const product = STORE_DATA.products.find(function(p){ return p.id === lightboxProductId; });
+  if (!product) return;
+  lightboxIndex = (lightboxIndex - 1 + product.images.length) % product.images.length;
+  renderLightbox();
+}
+
+function sanitizePhoneForWhatsApp(raw){
+  return (raw || '').replace(/[^0-9]/g, '');
+}
+
+function buildOrderMessage(customerName, customerContact){
+  const result = calculateCart();
+  const lines = ['New order from ' + (STORE_DATA.business.name || 'your store') + ':', ''];
+  result.items.forEach(function(it){
+    lines.push('- ' + it.product.name + ' x' + it.qty + ' = ' + fmt(it.lineTotal));
+  });
+  lines.push('', 'Total: ' + fmt(result.total), '');
+  lines.push('Customer: ' + (customerName || '(not provided)'));
+  if (customerContact) lines.push('Contact: ' + customerContact);
+  return lines.join('\\n');
+}
+
+function sendOrder(){
+  const name = document.getElementById('customer-name').value.trim();
+  const contact = document.getElementById('customer-contact').value.trim();
+  if (!name){ alert('Please enter your name'); return; }
+  const message = buildOrderMessage(name, contact);
+  const wa = STORE_DATA.business.whatsapp;
+  const email = STORE_DATA.business.email;
+  if (wa){
+    const digits = sanitizePhoneForWhatsApp(wa);
+    window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(message), '_blank');
+  } else if (email){
+    window.location.href = 'mailto:' + email + '?subject=' + encodeURIComponent('New order from ' + name) + '&body=' + encodeURIComponent(message);
+  }
+  closeCheckout();
+}
+
+function renderProducts(){
+  const grid = document.getElementById('product-grid');
+  if (!STORE_DATA.products || STORE_DATA.products.length === 0){
+    grid.outerHTML = '<div class="empty">No products yet.</div>';
+    return;
+  }
+  grid.innerHTML = STORE_DATA.products.map(function(p){
+    const images = p.images && p.images.length ? p.images : (p.imageDataUrl ? [p.imageDataUrl] : []);
+    const mainImg = images.length
+      ? '<img class="main-img" src="' + images[0] + '" onclick="openLightbox(\\'' + p.id + '\\',0)">'
+      : '<div style="height:150px;background:#f5f5f5;"></div>';
+    const thumbRow = images.length > 1
+      ? '<div class="thumb-row">' + images.map(function(src, idx){ return '<img src="' + src + '" onclick="openLightbox(\\'' + p.id + '\\',' + idx + ')">'; }).join('') + '</div>'
+      : '';
+    const desc = p.description ? '<div class="desc">' + escapeHtml(p.description) + '</div>' : '';
+    const stockBadge = p.outOfStock ? '<div style="display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;background:#f5e1dc;color:#b23b2e;padding:2px 8px;border-radius:20px;margin-top:6px;">Out of stock</div>' : '';
+    let variantSelect = '';
+    if (p.colors && p.colors.length){
+      variantSelect = '<select style="width:100%;margin-top:8px;padding:6px;border-radius:6px;border:1px solid #ddd;">' + p.colors.map(function(c){ return '<option>' + escapeHtml(c) + '</option>'; }).join('') + '</select>';
+    }
+    const disabledAttr = p.outOfStock ? 'disabled' : '';
+    const btnLabel = p.outOfStock ? 'Out of stock' : 'Add to cart';
+    return '<div class="product">' + mainImg + thumbRow +
+      '<div class="body"><div class="name">' + escapeHtml(p.name) + '</div>' + desc +
+      '<div class="price">' + fmt(p.price) + '</div>' + stockBadge + variantSelect +
+      '<button onclick="addToCart(\\'' + p.id + '\\')" ' + disabledAttr + '>' + btnLabel + '</button></div></div>';
+  }).join('');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : str;
+  return d.innerHTML;
+}
+
+document.getElementById('biz-name').textContent = STORE_DATA.business.name || 'Store';
+document.getElementById('biz-tagline').textContent = STORE_DATA.business.tagline || '';
+if (STORE_DATA.business.logoDataUrl){
+  const logo = document.getElementById('logo');
+  logo.src = STORE_DATA.business.logoDataUrl;
+  logo.style.display = 'block';
+}
+renderProducts();
+<\/script>
+</body>
+</html>`;
+
+function buildBodyBackgroundStyle(business){
+  if (business.backgroundType === 'image' && business.backgroundImageDataUrl){
+    return 'background-image:linear-gradient(rgba(0,0,0,0.35),rgba(0,0,0,0.35)),url(\'' + business.backgroundImageDataUrl + '\');background-size:cover;background-position:center;background-attachment:fixed;';
+  }
+  return 'background:' + (business.backgroundColor || '#F7F5EF') + ';';
+}
+
+function generateStoreHtml(currentState){
+  const currencyMeta = CURRENCIES.find(c => c.code === currentState.business.currency) || CURRENCIES[0];
+  const dataForExport = {
+    business: {
+      name: currentState.business.name,
+      tagline: currentState.business.tagline,
+      logoDataUrl: currentState.business.logoDataUrl,
+      whatsapp: currentState.business.whatsapp,
+      email: currentState.business.email,
+      currency: currentState.business.currency,
+      currencyLocale: currencyMeta.locale,
+    },
+    products: currentState.products,
+  };
+  return STORE_TEMPLATE
+    .replace('__BIZ_NAME__', escapeHtml(currentState.business.name || 'My Store'))
+    .replace('__BIZ_COLOR__', currentState.business.color || '#3B82C4')
+    .replace('__PRICE_COLOR__', currentState.business.priceColor || '#1E8A5F')
+    .replace('__BODY_BG_STYLE__', buildBodyBackgroundStyle(currentState.business))
+    .replace('/*__STALL_DATA__*/', JSON.stringify(dataForExport));
+}
+
+loadState();
+</script>
+</body>
+</html>
